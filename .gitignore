@@ -26,8 +26,6 @@ hs_err_pid*
 .launch
 
 
-# yodie-specific stuff to ignore
-*.gazbin
-resources/*
-!resources/.donotdelete
-lodie.config.yaml
+# repository specific stuff to ignore
+JdbcLookup.jar
+build.properties
