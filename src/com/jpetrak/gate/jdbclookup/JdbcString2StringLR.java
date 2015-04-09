@@ -52,17 +52,53 @@ public class JdbcString2StringLR extends JdbcLR {
   public void setReadOnly(Boolean flag) {
     readOnly = flag;
   }
-
+  
   public Boolean getReadOnly() {
     return readOnly;
   }
   protected Boolean readOnly = false;
 
+  @Optional
+  @CreoleParameter(
+          comment = "The name of the table column that contains the key",
+          defaultValue = "key")
+  public void setKeyColumnName(String name) {
+    keyColumnName = name;
+  }  
+  public String getKeyColumnName() { return keyColumnName; }  
+  public String getTheKeyColumnName() { 
+    if(keyColumnName==null || keyColumnName.isEmpty()) {
+      return "key";
+    } else {
+      return keyColumnName;
+    }
+  }
+  protected String keyColumnName = "key";
+  
+  @Optional
+  @CreoleParameter(
+          comment = "The name of the table column that contains the value",
+          defaultValue = "value")
+  public void setValueColumnName(String name) {
+    valueColumnName = name;
+  }  
+  public String getValueColumnName() { return valueColumnName; }  
+  public String getTheValueColumnName() { 
+    if(valueColumnName==null || valueColumnName.isEmpty()) {
+      return "value";
+    } else {
+      return valueColumnName;
+    }
+  }
+  protected String valueColumnName = "value";
+  
   @Override
   public synchronized Resource init() throws ResourceInstantiationException {
     super.init();
     establishTable();
     getSql = getSqlTempl.replaceAll("!!TBL!!", getActualTableName());
+    getSql = getSql.replaceAll("!!KEY!!", getTheKeyColumnName());
+    getSql = getSql.replaceAll("!!VALUE!!", getTheValueColumnName());
     containsSql = containsSqlTempl.replaceAll("!!TBL!!", getActualTableName());
     putSql = putSqlTempl.replaceAll("!!TBL!!", getActualTableName());
     deleteSql = deleteSqlTempl.replaceAll("!!TBL!!", getActualTableName());
@@ -146,7 +182,7 @@ public class JdbcString2StringLR extends JdbcLR {
   // returns the value of key. With this call, there is no way to distinguish
   // between a non-existing key or a key that has the value "null" stored, 
   // both return null. 
-  static final String getSqlTempl = "SELECT `value` FROM !!TBL!! WHERE `key` = ?";
+  private static final String getSqlTempl = "SELECT `!!VALUE!!` FROM !!TBL!! WHERE `!!KEY!!` = ?";
   String getSql;
 
   public String get(String key) {
