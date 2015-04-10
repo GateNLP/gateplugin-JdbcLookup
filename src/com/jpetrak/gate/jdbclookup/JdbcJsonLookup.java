@@ -114,13 +114,13 @@ public class JdbcJsonLookup extends JdbcLookupBase
         if (processingMode.equals(ProcessingMode.AddAnnotations)) {
           ArrayList<Integer> theIds = new ArrayList<Integer>();
           if (arrayOrMap instanceof Map) {
-            theIds.add(addLookup(ann, (Map) arrayOrMap, outputAS, outputType));
+            theIds.add(addLookup(ann, (Map) arrayOrMap, outputAS, outputType, fm));
           } else {
             ArrayList<Object> theList = (ArrayList<Object>) arrayOrMap;
             for (Object member : theList) {
               // all the members must be Maps!
               if (member instanceof Map) {
-                theIds.add(addLookup(ann, (Map) member, outputAS, outputType));
+                theIds.add(addLookup(ann, (Map) member, outputAS, outputType, fm));
               } else {
                 throw new GateRuntimeException("Odd JSON array does not contain just maps: " + json);
               }
@@ -194,10 +194,17 @@ public class JdbcJsonLookup extends JdbcLookupBase
     return ret;
   }
   
-  protected int addLookup(Annotation ann, Map theMap, AnnotationSet outputAS, String outputType) {
+  protected int addLookup(Annotation ann, Map theMap, AnnotationSet outputAS, String outputType, FeatureMap parentFeatures) {
     // create a new annotation in the output annotation set
     // and set the features from the map
-    return gate.Utils.addAnn(outputAS, ann, outputType, gate.Utils.toFeatureMap(theMap));
+    // if parentFeatures is non-null, then the features from that map will be added too,
+    // but overriden by the features in theMap
+    FeatureMap fm = Factory.newFeatureMap();
+    if(parentFeatures != null) {
+      fm.putAll(parentFeatures);      
+    }
+    fm.putAll(theMap);
+    return gate.Utils.addAnn(outputAS, ann, outputType, fm);
   }
 
 
