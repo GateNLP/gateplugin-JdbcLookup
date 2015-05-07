@@ -130,7 +130,7 @@ public class JdbcJsonLookup extends JdbcLookupBase
             FeatureMap fmList = Factory.newFeatureMap();
             fmList.putAll(fm); // inherit the original Lookup annotation features
             fmList.put("ids",theIds);
-            fmList.put("debugJdbcLookup",fm);
+            //fmList.put("debugJdbcLookup",fm);
             listId = gate.Utils.addAnn(outputAS, ann, listType, fmList);
             // add the id of the list annotation to the feature map of each candidate
             // as feature "llId" 
