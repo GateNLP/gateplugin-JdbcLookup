@@ -114,12 +114,12 @@ public class JdbcLR extends AbstractLanguageResource {
       // expand any variables in the url
       // First we have to create a map and put the dbdirectory path in 
       //
-      System.out.println("Relpath URL is: "+getDbDirectoryUrl());
-      try {
-        System.out.println("Relpath canonical file is: "+gate.util.Files.fileFromURL(getDbDirectoryUrl()).getCanonicalPath());
-      } catch (IOException ex) {
-        System.out.println("Could not get canonical path: "+ex);
-      }
+      //System.err.println("Relpath URL is: "+getDbDirectoryUrl());
+      //try {
+        //System.err.println("Relpath canonical file is: "+gate.util.Files.fileFromURL(getDbDirectoryUrl()).getCanonicalPath());
+      //} catch (IOException ex) {
+        //System.err.println("Could not get canonical path: "+ex);
+      //}
       String dbdirectory = "";
       if(getDbDirectoryUrl().getProtocol().equals("file")) {
         dbdirectory = getDbDirectoryUrl().getPath();
@@ -137,7 +137,7 @@ public class JdbcLR extends AbstractLanguageResource {
       String expandedPassword = 
         gate.Utils.replaceVariablesInString(jdbcPassword, dbdirectoryMap, this);
       
-      System.out.println("Using JDBC URL: "+expandedUrlString);
+      //System.err.println("Using JDBC URL: "+expandedUrlString);
       connection = DriverManager.getConnection(expandedUrlString, expandedUser, expandedPassword);
     } catch (SQLException ex) {
       throw new GateRuntimeException("Could not establish JDBC connection",ex);
