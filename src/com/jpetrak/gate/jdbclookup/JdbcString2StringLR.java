@@ -100,8 +100,11 @@ public class JdbcString2StringLR extends JdbcLR {
     getSql = getSql.replaceAll("!!KEY!!", getTheKeyColumnName());
     getSql = getSql.replaceAll("!!VALUE!!", getTheValueColumnName());
     containsSql = containsSqlTempl.replaceAll("!!TBL!!", getActualTableName());
+    containsSql = containsSql.replaceAll("!!KEY!!", getTheKeyColumnName());
     putSql = putSqlTempl.replaceAll("!!TBL!!", getActualTableName());
+    putSql = putSql.replaceAll("!!KEY!!", getTheKeyColumnName());
     deleteSql = deleteSqlTempl.replaceAll("!!TBL!!", getActualTableName());
+    deleteSql = deleteSql.replaceAll("!!KEY!!", getTheKeyColumnName());
     return this;
   }
 
@@ -183,6 +186,9 @@ public class JdbcString2StringLR extends JdbcLR {
   // between a non-existing key or a key that has the value "null" stored, 
   // both return null. 
   private static final String getSqlTempl = "SELECT `!!VALUE!!` FROM !!TBL!! WHERE `!!KEY!!` = ?";
+  private static final String containsSqlTempl = "SELECT 1 FROM !!TBL!! WHERE `!!KEY!!` = ? LIMIT 1";
+  private static final String putSqlTempl = "MERGE INTO !!TBL!! KEY(`!!KEY!!`) VALUES(?,?)";
+  private static final String deleteSqlTempl = "DELETE FROM !!TBL!! WHERE `!!KEY!!` = ?";
   String getSql;
 
   public String get(String key) {
@@ -202,7 +208,6 @@ public class JdbcString2StringLR extends JdbcLR {
     }
   }
   // explicitly check if a key is in the key/value store
-  static final String containsSqlTempl = "SELECT 1 FROM !!TBL!! WHERE `key` = ? LIMIT 1";
   String containsSql;
 
   public boolean contains(String key) {
@@ -221,7 +226,6 @@ public class JdbcString2StringLR extends JdbcLR {
       throw new GateRuntimeException("Could not update Jdbc String2String store", ex);
     }
   }
-  static final String putSqlTempl = "MERGE INTO !!TBL!! KEY(`key`) VALUES(?,?)";
   String putSql;
 // NOTE: at the moment this will always return null. The String return type
 // is just here so we may be able to return an "old" value later if we want
@@ -242,7 +246,6 @@ public class JdbcString2StringLR extends JdbcLR {
     }
     return null;
   }
-  static final String deleteSqlTempl = "DELETE FROM !!TBL!! WHERE `key` = ?";
   String deleteSql;
 // we just return null at the moment!
   public String remove(String key) {
