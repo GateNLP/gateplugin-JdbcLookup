@@ -49,12 +49,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * PR to lookup Json data from a JDBC database and create annotations from it.
  * The PR will use the value of a feature or the string from an annotation 
  * to lookup up matching rows in the database. The result rows are expected to
- * contain a single String value which is expected to be a JSON datastructure.
- * Depending on the processing mode, the JSON datastructure which is expected
+ * contain a single String value which is expected to be a JSON data structure.
+ * Depending on the processing mode, the JSON data structure which is expected
  * to be a map or an array of maps is used to add features to the original
- * annotation or create additional annotation(s).
+ * annotation or create additional annotation(s). 
+ * If the processing mode is to set or update the existing features and the
+ * JSON is a list of maps, then only the first element in that list is used.
+ * If the processing mode is adding annotations, then a new annotation is created
+ * for each element of the list, and the features are set according to the 
+ * map the element represents.
  * 
- * NOTE: for now this expects to get only one row at most for each key! If 
+ * NOTE: for now this expects to get only one database row at most for each key! If 
  * there is more than one row, only the first one is used!!
  * 
  * @author Johann Petrak

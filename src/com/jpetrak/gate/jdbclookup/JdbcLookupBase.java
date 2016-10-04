@@ -233,13 +233,6 @@ public class JdbcLookupBase
   }
   
   protected String sqlQuery = "SELECT <<jsonfieldname>> FROM <<tablename>> WHERE <<keyfieldname>> = ?";
-  @RunTime
-  @CreoleParameter(
-          comment = "The SQL to use for getting the json field for a key",
-          defaultValue = "SELECT <<jsonfieldname>> FROM <<tablename>> WHERE <<keyfieldname>> = ?")
-  public void setSqlQuery(String q) {
-    sqlQuery = q;
-  }
   public String getSqlQuery() {
     return sqlQuery;
   }

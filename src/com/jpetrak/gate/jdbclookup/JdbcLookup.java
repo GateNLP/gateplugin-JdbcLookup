@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this software. If not, see <http://www.gnu.org/licenses/>.
  */
+
+
 /*
  *  JdbcLookup.java
  *
@@ -71,6 +73,16 @@ public class JdbcLookup  extends JdbcLookupBase {
     return nameMappings;
   }
   
+
+  // NOTE: this parameter gets read in the base class but set in the specialized classes
+  @RunTime
+  @CreoleParameter(
+          comment = "The SQL to use for getting the json field for a key",
+          defaultValue = "SELECT <<jsonfieldname>> FROM <<tablename>> WHERE <<keyfieldname>> = ?")
+  public void setSqlQuery(String q) {
+    sqlQuery = q;
+  }
+  
   
   @Override
   public Resource init() throws ResourceInstantiationException {
@@ -113,6 +125,10 @@ public class JdbcLookup  extends JdbcLookupBase {
       } catch (SQLException ex) {
         throw new GateRuntimeException("Error executing query for "+key,ex);
       }
+      
+      
+      // TODO: cache the metadata since it should be the same for all results
+      // instead of keeping rsmd around, store the column names in a list
       try {
         // get the result metadata so we know the column names
         rsmd = rs.getMetaData();
@@ -135,6 +151,8 @@ public class JdbcLookup  extends JdbcLookupBase {
         }
         columnNames.add(columnName);
       }
+      ///
+      
       //System.out.println("Got column names: "+columnNames);
       int nrRows = 0;
       while(getNextRow(rs)) {

@@ -201,15 +201,15 @@ public class JdbcString2StringLR extends JdbcLR {
   public Connection getConnection() {
     return connection;
   }
-  // returns the value of key. With this call, there is no way to distinguish
-  // between a non-existing key or a key that has the value "null" stored, 
-  // both return null. 
   private static final String getSqlTempl = "SELECT `!!VALUE!!` FROM !!TBL!! WHERE `!!KEY!!` = ?";
   private static final String containsSqlTempl = "SELECT 1 FROM !!TBL!! WHERE `!!KEY!!` = ? LIMIT 1";
   private static final String putSqlTempl = "MERGE INTO !!TBL!! KEY(`!!KEY!!`) VALUES(?,?)";
   private static final String deleteSqlTempl = "DELETE FROM !!TBL!! WHERE `!!KEY!!` = ?";
   String getSql;
 
+  // returns the value of key. With this call, there is no way to distinguish
+  // between a non-existing key or a key that has the value "null" stored, 
+  // both return null. 
   public String get(String key) {
     PreparedStatement prSt;
     try {
