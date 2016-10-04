@@ -129,7 +129,7 @@ public class JdbcLR extends AbstractLanguageResource {
     } catch (ClassNotFoundException ex) {
       throw new GateRuntimeException("Could not load JDBC driver " + jdbcDriver, ex);
     }
-    try {
+    //try {
       // expand any variables in the url
       // First we have to create a map and put the dbdirectory path in 
       //
@@ -156,11 +156,13 @@ public class JdbcLR extends AbstractLanguageResource {
       String expandedPassword = 
         gate.Utils.replaceVariablesInString(jdbcPassword, dbdirectoryMap, this);
       
-      //System.err.println("Using JDBC URL: "+expandedUrlString);
-      connection = DriverManager.getConnection(expandedUrlString, expandedUser, expandedPassword);
-    } catch (SQLException ex) {
-      throw new GateRuntimeException("Could not establish JDBC connection",ex);
-    }
+      //System.out.println("Using JDBC URL: "+expandedUrlString);
+      connection = null;
+      try {
+        connection = DriverManager.getConnection(expandedUrlString, expandedUser, expandedPassword);
+      } catch(SQLException ex) {
+        throw new GateRuntimeException("Could not establish JDBC connection for URL: "+expandedUrlString,ex);
+      }
   }
   
   protected String expandedUrlString;
