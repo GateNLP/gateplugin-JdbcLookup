@@ -177,12 +177,12 @@ public class JdbcLookup  extends JdbcLookupBase {
             resultTypes.add("");
           } else {
             // first check if the mapping has a type added
-            // for now the only thing supported is |adouble!!
+            // for now the only thing supported is |s2adouble!!
             String name = mapping;
             String type = "";
-            if (mapping.endsWith("|adouble")) {
-              type = "adouble";
-              name = mapping.substring(0,mapping.length()-"|adouble".length());
+            if (mapping.endsWith("|s2adouble")) {
+              type = "s2adouble";
+              name = mapping.substring(0,mapping.length()-"|s2adouble".length());
             }
             resultFeatures.add(name);
             resultTypes.add(type);
@@ -237,7 +237,7 @@ public class JdbcLookup  extends JdbcLookupBase {
       String type = resultTypes.get(i);
       String fname = resultFeatures.get(i);
       Object value = colValues.get(i);
-      if("adouble".equals(type)) {
+      if("s2adouble".equals(type)) {
         double[] doubles;
         if(value==null) {
           doubles = new double[0];
