@@ -41,7 +41,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @CreoleResource(name = "JdbcLookup",
@@ -65,7 +67,7 @@ public class JdbcLookup  extends JdbcLookupBase {
   protected FeatureMap nameMappings = Factory.newFeatureMap();
   @RunTime
   @Optional
-  @CreoleParameter(comment="Map from SQL column names to feature names")
+  @CreoleParameter(comment="Map from SQL column names to feature names. Target types can be added after the name, separated by a pipe symbol: |")
   public void setNameMappings(FeatureMap mappings) {
     nameMappings = mappings;
   }
@@ -91,9 +93,18 @@ public class JdbcLookup  extends JdbcLookupBase {
   }
   
   private ResultSetMetaData rsmd = null;
-  private List<String> columnNames = null;
   private List<Object> columnValues = null;
   private int columnCount = 0;
+  
+  
+  // This is used for caching the result columns from the db query
+  List<String> resultColumns = null;
+  
+  // This is used for caching the feature names for the columns
+  List<String> resultFeatures = null;
+  
+  // This is used for caching the types for the columns
+  List<String> resultTypes = null;
    
   @Override
   public void doLookup(Document doc, Annotation ann, AnnotationSet outputAS) {
@@ -129,31 +140,58 @@ public class JdbcLookup  extends JdbcLookupBase {
       
       // TODO: cache the metadata since it should be the same for all results
       // instead of keeping rsmd around, store the column names in a list
-      try {
-        // get the result metadata so we know the column names
-        rsmd = rs.getMetaData();
-      } catch (SQLException ex) {
-        throw new GateRuntimeException("Could not get result set metadata",ex);
-      }
-      columnNames = new ArrayList<String>();
-      try {
-        columnCount = rsmd.getColumnCount();
-        //System.out.println("Column count is "+columnCount);
-      } catch (SQLException ex) {
-        throw new GateRuntimeException("Could not get column count",ex);
-      }
-      for(int i=1; i<=columnCount; i++) {
-        String columnName = "";
+      
+      // if we still do not have our caches create them
+      if (resultColumns == null) {
         try {
-          columnName = rsmd.getColumnName(i);
-        } catch(SQLException ex) {
-          throw new GateRuntimeException("Could not get column name",ex);
+          // get the result metadata so we know the column names
+          rsmd = rs.getMetaData();
+        } catch (SQLException ex) {
+          throw new GateRuntimeException("Could not get result set metadata", ex);
         }
-        columnNames.add(columnName);
+        resultColumns = new ArrayList<String>();
+        try {
+          columnCount = rsmd.getColumnCount();
+          //System.out.println("Column count is "+columnCount);
+        } catch (SQLException ex) {
+          throw new GateRuntimeException("Could not get column count", ex);
+        }
+        for (int i = 1; i <= columnCount; i++) {
+          String columnName = "";
+          try {
+            columnName = rsmd.getColumnName(i);
+          } catch (SQLException ex) {
+            throw new GateRuntimeException("Could not get column name", ex);
+          }
+          resultColumns.add(columnName);
+        }
+        //System.out.println("Got column names: "+columnNames);
+        // Now is also a good time to cache the column name mappings
+        resultFeatures = new ArrayList<String>(resultColumns.size());
+        resultTypes = new ArrayList<String>(resultColumns.size());
+        for(int k=0; k<resultColumns.size(); k++) {
+          String column = resultColumns.get(k);
+          String mapping = (String)nameMappings.get(column);
+          if(mapping == null) {
+            resultFeatures.add(column);
+            resultTypes.add("");
+          } else {
+            // first check if the mapping has a type added
+            // for now the only thing supported is |adouble!!
+            String name = mapping;
+            String type = "";
+            if (mapping.endsWith("|adouble")) {
+              type = "adouble";
+              name = mapping.substring(0,mapping.length()-"|adouble".length());
+            }
+            resultFeatures.add(name);
+            resultTypes.add(type);
+          }
+        }
       }
+      
       ///
       
-      //System.out.println("Got column names: "+columnNames);
       int nrRows = 0;
       while(getNextRow(rs)) {
         nrRows++;
@@ -175,7 +213,7 @@ public class JdbcLookup  extends JdbcLookupBase {
           // just set the features of the current annotation from the 
           // values from each column in the result set
           
-          setFeaturesFromColumns(fm, columnNames, columnValues);
+          setFeaturesFromColumns(fm, columnValues);
           
           // if we just wanted the values from the first row, exit this loop
           if(getProcessingMode().equals(ProcessingMode.AddFeaturesFromFirst)) {
@@ -184,7 +222,7 @@ public class JdbcLookup  extends JdbcLookupBase {
         } else if (getProcessingMode().equals(ProcessingMode.AddAnnotations)) {
           // create a new annotation for the value list
           FeatureMap newfm = Factory.newFeatureMap();
-          setFeaturesFromColumns(newfm, columnNames, columnValues);
+          setFeaturesFromColumns(newfm, columnValues);
           gate.Utils.addAnn(outputAS, ann, getOutputAnnotationType(), newfm);
           
         }
@@ -194,14 +232,30 @@ public class JdbcLookup  extends JdbcLookupBase {
   }  
 
   
-  protected void setFeaturesFromColumns(FeatureMap fm, List<String> colNames, List<Object> colValues) {
-    for(int i=0; i<colNames.size(); i++) {
-      String fname = colNames.get(i);
-      String mappedName = (String)nameMappings.get(fname);
-      if(mappedName != null) {
-        fname = mappedName;
+  protected void setFeaturesFromColumns(FeatureMap fm, List<Object> colValues) {
+    for(int i=0; i<colValues.size(); i++) {
+      String type = resultTypes.get(i);
+      String fname = resultFeatures.get(i);
+      Object value = colValues.get(i);
+      if("adouble".equals(type)) {
+        double[] doubles;
+        if(value==null) {
+          doubles = new double[0];
+        } else {
+          String els = value.toString();
+          els = els.substring(1,els.length()-1);
+          //System.err.println(els);
+          String[] elss = els.split(",\\s+");
+          doubles = new double[elss.length];
+          for(int k=0; k<doubles.length; k++) {
+            doubles[k] = Double.parseDouble(elss[k]);
+          }
+        }
+        System.err.println("fn="+fname+", d="+doubles);
+        fm.put(fname,doubles);
+      } else {
+        fm.put(fname,colValues.get(i));
       }
-      fm.put(fname,colValues.get(i));
     }
   }
   
