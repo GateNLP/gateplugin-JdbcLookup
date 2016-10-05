@@ -28,7 +28,9 @@ package com.jpetrak.gate.jdbclookup;
 
 import gate.*;
 import gate.api.AbstractDocumentProcessor;
+import gate.creole.ExecutionInterruptedException;
 import gate.creole.metadata.*;
+import gate.util.GateRuntimeException;
 import java.io.File;
 import java.net.URL;
 import org.mapdb.DB;
@@ -141,21 +143,6 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   }
   public String getMapName() { return mapName; }
 
-  /*
-    not sure if we need to specify this on loading, probably not ...
-    
-  private Serializer valueType = Serializer.DOUBLE_ARRAY;
-  @RunTime
-  @Optional
-  @CreoleParameter(
-          comment = "The type of information stored for each String key in the MapDB map",
-          defaultValue = "DOUBLE_ARRAY"
-  )
-  public void setValueType(Serializer t) {
-    valueType = t;
-  }
-  public Serializer getValueType() { return valueType; }
-  */
 
   ////////////////////// FIELDS
   
@@ -167,24 +154,71 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
   @Override
   protected Document process(Document document) {
-    // get all the annotations for which to lookup something
-    AnnotationSet toProcess = document.getAnnotations(getInputAnnotationSet()).get(getInputAnnotationType());
-    //System.err.println("Number of annotations: "+toProcess.size());
-    for(Annotation ann : toProcess) {
-      String key;
-      FeatureMap fm = ann.getFeatures();
-      if(getKeyFeature()==null || getKeyFeature().isEmpty()) {
-        key = Utils.cleanStringFor(document, ann);
-      } else {
-        key = (String)fm.get(getKeyFeature());
+    
+    AnnotationSet inputAS = null;
+    if (inputASName == null
+            || inputASName.isEmpty()) {
+      inputAS = document.getAnnotations();
+    } else {
+      inputAS = document.getAnnotations(inputASName);
+    }
+
+    AnnotationSet inputAnns = null;
+    if (inputType == null || inputType.isEmpty()) {
+      throw new GateRuntimeException("Input annotation type must not be empty!");
+    }
+    inputAnns = inputAS.get(inputType);
+
+    AnnotationSet containingAnns = null;
+    if (containingType == null || containingType.isEmpty()) {
+      // leave the containingAnns null to indicate we do not use containing annotations
+    } else {
+      containingAnns = inputAS.get(containingType);
+      //System.out.println("DEBUG: got containing annots: "+containingAnns.size()+" type is "+containingAnnotationType);
+    }
+
+    fireStatusChanged("MapdbLookup: performing look-up in " + document.getName() + "...");
+
+    if (containingAnns == null) {
+      // go through all input annotations 
+      for (Annotation ann : inputAnns) {
+        doLookup(document, ann);
+        if(isInterrupted()) {
+          throw new GateRuntimeException("MapdbLookup has been interrupted");
+        }
       }
-      if(key != null) {
-        Object val = map.get(key);
-        fm.put(getValueFeature(),val);
+    } else {
+      // go through the input annotations contained in the containing annotations
+      for (Annotation containingAnn : containingAnns) {
+        AnnotationSet containedAnns = gate.Utils.getContainedAnnotations(inputAnns, containingAnn);
+        for (Annotation ann : containedAnns) {
+          doLookup(document, ann);
+          if(isInterrupted()) { 
+            throw new GateRuntimeException("MapdbLookup has been interrupted");
+          }
+        }
       }
     }
+
+    fireProcessFinished();
+    fireStatusChanged("MapdbLookup: look-up complete!");
     return document;
   }
+  
+  private void doLookup(Document doc, Annotation ann) {
+    String key;
+    FeatureMap fm = ann.getFeatures();
+    if (getKeyFeature() == null || getKeyFeature().isEmpty()) {
+      key = Utils.cleanStringFor(document, ann);
+    } else {
+      key = (String) fm.get(getKeyFeature());
+    }
+    if (key != null) {
+      Object val = map.get(key);
+      fm.put(getValueFeature(), val);
+    }
+  }
+  
 
   @Override
   protected void beforeFirstDocument(Controller ctrl) {    
