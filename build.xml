@@ -1,9 +1,9 @@
-<project name="JdbcLookup" basedir="." default="jar">
+<project name="gateplugin-JdbcLookup" basedir="." default="jar">
 
   <property file="build.properties" />
 
   <!-- Name of the plugin -->
-  <property name="plugin.name" value="JdbcLookup"/>
+  <property name="plugin.name" value="gateplugin-JdbcLookup"/>
 
   <!-- Make environment variables available -->
   <property environment="env" />

@@ -41,9 +41,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 @CreoleResource(name = "JdbcLookup",
@@ -76,14 +74,6 @@ public class JdbcLookup  extends JdbcLookupBase {
   }
   
 
-  // NOTE: this parameter gets read in the base class but set in the specialized classes
-  @RunTime
-  @CreoleParameter(
-          comment = "The SQL to use for getting the json field for a key",
-          defaultValue = "SELECT <<jsonfieldname>> FROM <<tablename>> WHERE <<keyfieldname>> = ?")
-  public void setSqlQuery(String q) {
-    sqlQuery = q;
-  }
   
   
   @Override
@@ -251,7 +241,7 @@ public class JdbcLookup  extends JdbcLookupBase {
             doubles[k] = Double.parseDouble(elss[k]);
           }
         }
-        System.err.println("fn="+fname+", d="+doubles);
+        //System.err.println("fn="+fname+", d="+doubles);
         fm.put(fname,doubles);
       } else {
         fm.put(fname,colValues.get(i));

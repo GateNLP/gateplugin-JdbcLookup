@@ -232,9 +232,16 @@ public class JdbcLookupBase
     return dbDirectoryUrl;
   }
   
-  protected String sqlQuery = "SELECT <<jsonfieldname>> FROM <<tablename>> WHERE <<keyfieldname>> = ?";
+  protected String sqlQuery = "SELECT <<columnnames>> FROM <<tablename>> WHERE <<keyfieldname>> = ?";
   public String getSqlQuery() {
     return sqlQuery;
+  }
+  @RunTime
+  @CreoleParameter(
+          comment = "The SQL to use for getting the json field for a key",
+          defaultValue = "SELECT <<columnnames>> FROM <<tablename>> WHERE <<keyfieldname>> = ?")
+  public void setSqlQuery(String q) {
+    sqlQuery = q;
   }
   
   
