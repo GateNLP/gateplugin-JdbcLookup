@@ -28,4 +28,6 @@ hs_err_pid*
 
 # repository specific stuff to ignore
 JdbcLookup.jar
+gateplugin-JdbcLookup.jar
+gateplugin-JdbcLookup*.zip
 build.properties
