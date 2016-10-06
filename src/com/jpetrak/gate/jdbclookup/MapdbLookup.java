@@ -117,7 +117,19 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   protected String valueFeature = "value";
   
 
-
+  private LoadingMode loadingMode = LoadingMode.MEMORY_MAPPED;
+  @Optional
+  @RunTime
+  @CreoleParameter(
+      comment = "How to open/load the MapDB file",
+      defaultValue = "MEMORY_MAPPED"
+  )
+  public void setLoadingMode(LoadingMode val) {
+    loadingMode = val;
+  }
+  public LoadingMode getLoadingMode() {
+    return loadingMode;
+  }
 
 
   
@@ -146,8 +158,21 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
 
   ////////////////////// FIELDS
   
-  DB db = null;
-  HTreeMap<String, Object> map = null;
+  private DB db = null;
+  
+  @Sharable
+  public void setDb(DB d) {
+    db = d;
+  }
+  public DB getDb() { return db; }
+  
+  
+  private HTreeMap<String, Object> map = null;
+  @Sharable 
+  public void setMap(HTreeMap<String,Object> m) {
+    map = m;
+  }
+  public HTreeMap<String,Object> getMap() {return map;}
   
   
   ////////////////////// PROCESSING
@@ -221,25 +246,44 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
 
   @Override
-  protected void beforeFirstDocument(Controller ctrl) {    
-    File file = gate.util.Files.fileFromURL(mapDbFileUrl);
-    db = DBMaker.fileDB(file).fileMmapEnable().readOnly().make();
-    //System.err.println("DB openend: "+db);
-    map = (HTreeMap<String,Object>)db.hashMap(getMapName()).
-            open();
-    //System.err.println("GOT map: "+map.size());
+  protected void beforeFirstDocument(Controller ctrl) {   
+    
+    if(getDb() != null) {
+      System.err.println("INFO: shared db already opened");
+    } else {
+      File file = gate.util.Files.fileFromURL(mapDbFileUrl);
+      DB d;
+      if(getLoadingMode()==null || getLoadingMode() == LoadingMode.MEMORY_MAPPED) {
+        d = DBMaker.fileDB(file).fileMmapEnable().readOnly().make();
+      } else {
+        d = DBMaker.fileDB(file).readOnly().make();
+      }
+      setDb(d);
+      //System.err.println("DB openend: "+db);
+      HTreeMap<String,Object> m = (HTreeMap<String,Object>)getDb().hashMap(getMapName()).
+              open();
+      setMap(m);
+      //System.err.println("GOT map: "+map.size());
+    }
   }
 
   @Override
   protected void afterLastDocument(Controller ctrl, Throwable t) {
-    if(db!=null) db.close();
   }
 
   @Override
   protected void finishedNoDocument(Controller ctrl, Throwable t) {
-    if(db!=null) db.close();
   }
   
+  @Override
+  public void cleanup() {
+    if(db!=null && !db.isClosed()) { db.close(); }
+  }
+  
+  public static enum LoadingMode {
+    MEMORY_MAPPED,
+    FILE_ONLY
+  }
 
   
   
