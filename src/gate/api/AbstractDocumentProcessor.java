@@ -30,6 +30,9 @@ import gate.creole.ControllerAwarePR;
 import gate.creole.ResourceInstantiationException;
 import gate.creole.AbstractLanguageAnalyser;
 import gate.creole.ExecutionException;
+import gate.creole.metadata.Sharable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 //import java.util.Optional;
 
 /**
@@ -50,6 +53,30 @@ public abstract class AbstractDocumentProcessor
   protected Controller controller;
 
   protected Throwable throwable;
+  
+  private static final Object syncObject = new Object();
+  
+  protected AtomicInteger nDuplicates = null;
+  @Sharable
+  public void setNDuplicates(AtomicInteger n) {
+    nDuplicates = n;
+  }
+  public AtomicInteger getNDuplicates() {
+    return nDuplicates;
+  }
+  
+  
+  protected ConcurrentHashMap<String,Object> sharedData = null;
+  @Sharable
+  public void setSharedData(ConcurrentHashMap<String,Object> v) {
+    sharedData = v;
+  }
+  public ConcurrentHashMap<String,Object> getSharedData() {
+    return sharedData;
+  }
+  
+  protected int duplicateId = 0;
+  
 
   //===============================================================================
   // Implementation of the relevant API methods for DocumentProcessors. These
@@ -67,6 +94,20 @@ public abstract class AbstractDocumentProcessor
   //================================================================================
   @Override
   public Resource init() throws ResourceInstantiationException {
+    // we always provide the following fields to all PRs which are used for duplicated PRs:
+    // nDuplicates is an AtomicInt which gets incremented whenever a resource
+    // gets duplicated. 
+    synchronized (syncObject) {
+      if(getNDuplicates() == null) {        
+        System.err.println("DEBUG: creating first instance of PR "+this.getName());
+        setNDuplicates(new AtomicInteger(0));
+        setSharedData(new ConcurrentHashMap<String,Object>());
+      } else {
+        int thisn = getNDuplicates().addAndGet(1);
+        duplicateId = thisn;
+        System.err.println("DEBUG: creating duplicate "+thisn+" of PR "+this.getName());
+      }
+    }
     return this;
   }
 

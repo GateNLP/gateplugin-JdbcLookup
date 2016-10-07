@@ -159,21 +159,8 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   ////////////////////// FIELDS
   
   private DB db = null;
-  
-  @Sharable
-  public void setDb(DB d) {
-    db = d;
-  }
-  public DB getDb() { return db; }
-  
-  
   private HTreeMap<String, Object> map = null;
-  @Sharable 
-  public void setMap(HTreeMap<String,Object> m) {
-    map = m;
-  }
-  public HTreeMap<String,Object> getMap() {return map;}
-  
+  private static final Object syncObject = new Object();
   
   ////////////////////// PROCESSING
   
@@ -246,24 +233,25 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
 
   @Override
-  protected void beforeFirstDocument(Controller ctrl) {   
-    
-    if(getDb() != null) {
-      System.err.println("INFO: shared db already opened");
-    } else {
-      File file = gate.util.Files.fileFromURL(mapDbFileUrl);
-      DB d;
-      if(getLoadingMode()==null || getLoadingMode() == LoadingMode.MEMORY_MAPPED) {
-        d = DBMaker.fileDB(file).fileMmapEnable().readOnly().make();
+  protected void beforeFirstDocument(Controller ctrl) {
+    synchronized (syncObject) {
+      db = (DB) sharedData.get("db");
+      if (db != null) {
+        System.err.println("INFO: shared db already opened in duplicate " + duplicateId + " of PR " + this.getName());
+        map = (HTreeMap<String, Object>) sharedData.get("map");
       } else {
-        d = DBMaker.fileDB(file).readOnly().make();
+        System.err.println("INFO: Opening DB in duplicate " + duplicateId + " of PR " + this.getName());
+        File file = gate.util.Files.fileFromURL(mapDbFileUrl);
+        if (getLoadingMode() == null || getLoadingMode() == LoadingMode.MEMORY_MAPPED) {
+          db = DBMaker.fileDB(file).fileMmapEnable().readOnly().make();
+        } else {
+          db = DBMaker.fileDB(file).readOnly().make();
+        }
+        sharedData.put("db", db);
+        map = (HTreeMap<String, Object>) db.hashMap(getMapName()).open();
+        sharedData.put("map", map);
+        //System.err.println("GOT map: "+map.size());
       }
-      setDb(d);
-      //System.err.println("DB openend: "+db);
-      HTreeMap<String,Object> m = (HTreeMap<String,Object>)getDb().hashMap(getMapName()).
-              open();
-      setMap(m);
-      //System.err.println("GOT map: "+map.size());
     }
   }
 
@@ -277,7 +265,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
   @Override
   public void cleanup() {
-    if(db!=null && !db.isClosed()) { db.close(); }
+    if(duplicateId == 0 && db!=null && !db.isClosed()) { db.close(); }
   }
   
   public static enum LoadingMode {
