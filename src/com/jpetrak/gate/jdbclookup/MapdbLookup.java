@@ -33,9 +33,12 @@ import gate.creole.metadata.*;
 import gate.util.GateRuntimeException;
 import java.io.File;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 
 @CreoleResource(name = "MapdbLookup",
@@ -155,6 +158,62 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   }
   public String getMapName() { return mapName; }
 
+  
+  private FeatureMap featureMappings = null;
+  /**
+   * How to map sequence elements or map entries to the final features.
+   * For mode SEQUENCE_TO_FEATURES this should contain the index of the 
+   * sequence element as a key (0-based) and the name of the feature to
+   * create for the element value as the value. For mode MAP_TOP_FEATURES,
+   * this should contain the key of the input map as key and the name of
+   * the target feature as the value. This is ignored if the mode is DIRECT.
+   * 
+   * @param fm 
+   */
+  @RunTime
+  @Optional
+  @CreoleParameter(
+          comment = "Mapping information, if necessary."
+  )
+  public void setFeatureMappings(FeatureMap fm) {
+    featureMappings = fm;
+  }
+  public FeatureMap getFeatureMappings() {
+    return featureMappings;
+  }
+  
+  private MappingMode mappingMode = MappingMode.DIRECT;
+  /**
+   * How to map the values from the mapdb map to target features.
+   * Mode DIRECT will assign the whole object retrieved from the map
+   * to a feature with the name specified for parameter valueFeature. 
+   * In mode SEQUENCE_TO_FEATURES, the elements of the sequence with 
+   * indices present in the featureMappings are assigned to features with
+   * the name given in the featureMapping. If no featureMappings are specified,
+   * the valueFeature name will be used with the element index appended.
+   * In mode MAP_TP_FEATURES, the elements specified in the featureMapping
+   * are assigned to features with the name from the featureMapping, if no
+   * featureMapping is specified, all entries are copied over unchanged.
+   * <p>
+   * Note that for mode SEQUENCE_TO_FEATURES only the following types are 
+   * supported: List&lt;?&gt;, double[], int[], and String[]. 
+   * 
+   * @param val 
+   */
+  @RunTime
+  @Optional
+  @CreoleParameter(
+          comment = "How to map data from the mapdb to features",
+          defaultValue = "DIRECT"
+  )
+  public void setMappingMode(MappingMode val) {
+    mappingMode = val;
+  }
+  public MappingMode getMappingMode() {
+    return mappingMode;
+  }
+  
+  
 
   ////////////////////// FIELDS
   
@@ -227,10 +286,70 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
     }
     if (key != null) {
       Object val = map.get(key);
-      fm.put(getValueFeature(), val);
+      if(mappingMode == MappingMode.DIRECT) {
+        fm.put(getValueFeature(), val);
+      } else if(mappingMode == MappingMode.MAP_TO_FEATURES) {
+        // in this case, val has to be a map!
+        if(val instanceof Map) {
+          Map<String,Object> valmap = (Map<String,Object>)val;
+          // now if there are any mappings set, use them, otherwise just 
+          // add all entries as is to the feature map
+          if(getFeatureMappings()==null || getFeatureMappings().isEmpty()) {
+            fm.putAll(valmap);
+          } else {
+            throw new GateRuntimeException("feature mappings not implemented yet for MAP_TO_FEATURES");
+          }
+        } else {
+          throw new RuntimeException("Cannot use mapping mode MAP_TO_FEATURES, value is not a Map but "+val.getClass());
+        }
+      } else if(mappingMode == MappingMode.SEQUENCE_TO_FEATURES) {
+        // for this the value must be an array or a list.
+        // If there are no featureMappings we will generate feature names
+        // <getValueFeature()>N, otherwise we will use the mappings
+        if(val instanceof List) {
+          List<Object> toAdd = (List<Object>)val;
+          for(int i=0; i<toAdd.size(); i++) {
+            addMappedElement(fm,toAdd.get(i),i,getFeatureMappings());
+          }
+        } else if(val instanceof double[]) {
+          double[] toAdd = (double[])val;
+          for(int i=0; i<toAdd.length; i++) {
+            addMappedElement(fm,toAdd[i],i,getFeatureMappings());
+          }          
+        } else if(val instanceof int[]) {
+          int[] toAdd = (int[])val;
+          for(int i=0; i<toAdd.length; i++) {
+            addMappedElement(fm,toAdd[i],i,getFeatureMappings());
+          }          
+        } else if(val instanceof String[]) {
+          String[] toAdd = (String[])val;
+          for(int i=0; i<toAdd.length; i++) {
+            addMappedElement(fm,toAdd[i],i,getFeatureMappings());
+          }                    
+        } else {
+          throw new RuntimeException("Cannot use mapping mode SEQUENCE_TO_FEATURES, value is not supported: "+val.getClass());
+        }
+      }
     }
   }
   
+  // Helper function to add sequence elements to a target feature map, optionally
+  // using the mappings
+  private void addMappedElement(FeatureMap targetFm, Object value, int index, FeatureMap mappings) {
+    if(mappings==null || mappings.isEmpty()) {
+      // generate the names
+      String name = getValueFeature();
+      if(name == null) name = getMapName();
+      name = name + index;
+      targetFm.put(name,value);
+    } else {
+      String idx = ""+index;
+      String name = (String)mappings.get(idx);
+      if(name != null) {
+        targetFm.put(name,value);
+      }
+    }
+  }
 
   @Override
   protected void beforeFirstDocument(Controller ctrl) {
@@ -244,11 +363,19 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
         File file = gate.util.Files.fileFromURL(mapDbFileUrl);
         if (getLoadingMode() == null || getLoadingMode() == LoadingMode.MEMORY_MAPPED) {
           db = DBMaker.fileDB(file).fileMmapEnable().readOnly().make();
-        } else {
+          map = (HTreeMap<String, Object>) db.hashMap(getMapName()).open();
+        } else if(getLoadingMode() == LoadingMode.FILE_ONLY) {
           db = DBMaker.fileDB(file).readOnly().make();
+          map = (HTreeMap<String, Object>) db.hashMap(getMapName()).open();
+        } else if(getLoadingMode() == LoadingMode.COPY2MEMORY) {
+          DB tmpdb = DBMaker.fileDB(file).readOnly().make();
+          HTreeMap<String, Object> fmap = (HTreeMap<String, Object>)tmpdb.hashMap(getMapName()).create();
+          db = DBMaker.memoryDB().make();
+          map = (HTreeMap<String, Object>)db.hashMap(getMapName()).create();
+          map.putAll(fmap);
+          tmpdb.close();
         }
         sharedData.put("db", db);
-        map = (HTreeMap<String, Object>) db.hashMap(getMapName()).open();
         sharedData.put("map", map);
         //System.err.println("GOT map: "+map.size());
       }
@@ -270,9 +397,15 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
   public static enum LoadingMode {
     MEMORY_MAPPED,
-    FILE_ONLY
+    FILE_ONLY,
+    COPY2MEMORY
   }
 
+  public static enum MappingMode {
+    DIRECT,
+    SEQUENCE_TO_FEATURES,
+    MAP_TO_FEATURES
+  }
   
   
 } // class JdbcLookup
