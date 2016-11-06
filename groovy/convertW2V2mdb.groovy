@@ -99,8 +99,8 @@ System.in.eachLine() { line ->
       hrows=m.group(1) as int
       hcols=m.group(2) as int
     } else {
-      kv = line.split('\\s+',2)
-      hcols = kv-1
+      kv = line.split('\\s+')
+      hcols = kv.size()-1
       hrows = "unknown (no header line)"
     }
     // check/store dimensions  
@@ -127,7 +127,7 @@ db.close()
 def addLine(String line, int linenr, int hcols) {
     // process embedding line
     // first split into word and rest
-    kv = line.split('\\s',2)
+    kv = line.split('\\s+',2)
     if(kv.size() != 2) {
       System.err.println("Odd line "+linenr+", line length is: "+line.size())
       System.err.println("Odd line ignored: >"+line+"<")
@@ -135,12 +135,13 @@ def addLine(String line, int linenr, int hcols) {
     }
     word = kv[0]
     vec = kv[1]
-    numbers = vec.split('\\s')
+    numbers = vec.split('\\s+')
     if(numbers.size() != hcols) {
       System.err.println("Odd line "+linenr+", has cols: "+numbers.size()+", ignored: >"+line+"<")
       return
     }
     double[] embvec = new double[numbers.size()]
+    //System.err.println("DEBUG numbers="+numbers)
     numbers.eachWithIndex { s,i -> embvec[i] = s.toDouble() }
     map.put(word,embvec)
 }
