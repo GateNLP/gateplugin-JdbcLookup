@@ -28,8 +28,9 @@ package com.jpetrak.gate.jdbclookup;
 
 import gate.*;
 import gate.api.AbstractDocumentProcessor;
-import gate.creole.ExecutionInterruptedException;
 import gate.creole.metadata.*;
+import gate.util.Benchmark;
+import gate.util.Benchmarkable;
 import gate.util.GateRuntimeException;
 import java.io.File;
 import java.net.URL;
@@ -38,12 +39,13 @@ import java.util.Map;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 
 @CreoleResource(name = "MapdbLookup",
         comment = "Lookup features in a mapdb map")
-public class MapdbLookup  extends AbstractDocumentProcessor {
+public class MapdbLookup  extends AbstractDocumentProcessor implements Benchmarkable {
+
+  private static final long serialVersionUID = 1L;
   
   
   
@@ -278,6 +280,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   
   private void doLookup(Document doc, Annotation ann) {
     String key;
+    long startTime = Benchmark.startPoint();
     FeatureMap fm = ann.getFeatures();
     if (getKeyFeature() == null || getKeyFeature().isEmpty()) {
       key = Utils.cleanStringFor(document, ann);
@@ -331,6 +334,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
         }
       }
     }
+    benchmarkCheckpoint(startTime, "__MapdbLookup");
   }
   
   // Helper function to add sequence elements to a target feature map, optionally
@@ -359,6 +363,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
         System.err.println("INFO: shared db already opened in duplicate " + duplicateId + " of PR " + this.getName());
         map = (HTreeMap<String, Object>) sharedData.get("map");
       } else {
+        long startTime = Benchmark.startPoint();
         System.err.println("INFO: Opening DB in duplicate " + duplicateId + " of PR " + this.getName());
         File file = gate.util.Files.fileFromURL(mapDbFileUrl);
         if (getLoadingMode() == null || getLoadingMode() == LoadingMode.MEMORY_MAPPED) {
@@ -377,6 +382,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
         }
         sharedData.put("db", db);
         sharedData.put("map", map);
+        benchmarkCheckpoint(startTime, "__LoadMapdb");
         //System.err.println("GOT map: "+map.size());
       }
     }
@@ -394,6 +400,28 @@ public class MapdbLookup  extends AbstractDocumentProcessor {
   public void cleanup() {
     if(duplicateId == 0 && db!=null && !db.isClosed()) { db.close(); }
   }
+  
+  protected void benchmarkCheckpoint(long startTime, String name) {
+    if (Benchmark.isBenchmarkingEnabled()) {
+      Benchmark.checkPointWithDuration(
+              Benchmark.startPoint() - startTime,
+              Benchmark.createBenchmarkId(name, this.getBenchmarkId()),
+              this, null);
+    }
+  }
+  
+  @Override
+  public String getBenchmarkId() {
+    return benchmarkId;
+  }
+
+  @Override
+  public void setBenchmarkId(String string) {
+    benchmarkId = string;
+  }
+  private String benchmarkId = this.getName();
+  
+
   
   public static enum LoadingMode {
     MEMORY_MAPPED,
