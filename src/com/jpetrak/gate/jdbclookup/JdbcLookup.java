@@ -173,6 +173,9 @@ public class JdbcLookup  extends JdbcLookupBase {
             if (mapping.endsWith("|s2adouble")) {
               type = "s2adouble";
               name = mapping.substring(0,mapping.length()-"|s2adouble".length());
+            } else if(mapping.endsWith("|s2ldouble")) {
+              type = "s2ldouble";
+              name = mapping.substring(0,mapping.length()-"|s2ldouble".length());
             }
             resultFeatures.add(name);
             resultTypes.add(type);
@@ -239,6 +242,22 @@ public class JdbcLookup  extends JdbcLookupBase {
           doubles = new double[elss.length];
           for(int k=0; k<doubles.length; k++) {
             doubles[k] = Double.parseDouble(elss[k]);
+          }
+        }
+        //System.err.println("fn="+fname+", d="+doubles);
+        fm.put(fname,doubles);
+      } else if("s2ldouble".equals(type)) {
+        List<Double> doubles;
+        if(value==null) {
+          doubles = new ArrayList<Double>(0);
+        } else {
+          String els = value.toString();
+          els = els.substring(1,els.length()-1);
+          //System.err.println(els);
+          String[] elss = els.split(",\\s+");
+          doubles = new ArrayList<Double>(elss.length);
+          for(int k=0; k<doubles.size(); k++) {
+            doubles.add(Double.parseDouble(elss[k]));
           }
         }
         //System.err.println("fn="+fname+", d="+doubles);
