@@ -102,11 +102,18 @@ public class JdbcString2StringLR extends JdbcLR {
     valueColumnName = name;
   }  
   public String getValueColumnName() { return valueColumnName; }  
+  // NOTE: this is normally just a column escaped in backticks, e.g. `value`
+  // but if we detect that the valueColumnName contains parentheses, then 
+  // we assume it is a SQL function and omit the backticks
   public String getTheValueColumnName() { 
     if(valueColumnName==null || valueColumnName.isEmpty()) {
       return "value";
     } else {
-      return valueColumnName;
+      if(valueColumnName.contains("(")) {
+        return valueColumnName;
+      } else {
+        return "`"+valueColumnName+"`";
+      }
     }
   }
   protected String valueColumnName = "value";
@@ -201,7 +208,7 @@ public class JdbcString2StringLR extends JdbcLR {
   public Connection getConnection() {
     return connection;
   }
-  private static final String getSqlTempl = "SELECT `!!VALUE!!` FROM !!TBL!! WHERE `!!KEY!!` = ?";
+  private static final String getSqlTempl = "SELECT !!VALUE!! FROM !!TBL!! WHERE `!!KEY!!` = ?";
   private static final String containsSqlTempl = "SELECT 1 FROM !!TBL!! WHERE `!!KEY!!` = ? LIMIT 1";
   private static final String putSqlTempl = "MERGE INTO !!TBL!! KEY(`!!KEY!!`) VALUES(?,?)";
   private static final String deleteSqlTempl = "DELETE FROM !!TBL!! WHERE `!!KEY!!` = ?";
