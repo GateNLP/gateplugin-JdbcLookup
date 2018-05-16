@@ -1,7 +1,7 @@
 <!-- creole.xml for gateplugin-JdbcLookup -->
 <CREOLE-DIRECTORY
   ID="JdbcLookup"
-  VERSION="0.1"
+  VERSION="0.2"
   DESCRIPTION="Lookup from JDBC and MapDB"
   HELPURL=""
 >
