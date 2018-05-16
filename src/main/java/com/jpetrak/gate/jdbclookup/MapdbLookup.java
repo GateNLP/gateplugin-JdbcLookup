@@ -170,7 +170,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor implements Benchmark
    * this should contain the key of the input map as key and the name of
    * the target feature as the value. This is ignored if the mode is DIRECT.
    * 
-   * @param fm 
+   * @param fm TODO
    */
   @RunTime
   @Optional
@@ -200,7 +200,7 @@ public class MapdbLookup  extends AbstractDocumentProcessor implements Benchmark
    * Note that for mode SEQUENCE_TO_FEATURES only the following types are 
    * supported: List&lt;?&gt;, double[], int[], and String[]. 
    * 
-   * @param val 
+   * @param val TODO
    */
   @RunTime
   @Optional

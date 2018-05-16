@@ -31,3 +31,4 @@ JdbcLookup.jar
 gateplugin-JdbcLookup.jar
 gateplugin-JdbcLookup*.zip
 build.properties
+/target/
