@@ -4,43 +4,25 @@
   <parent>
     <groupId>uk.ac.gate</groupId>
     <artifactId>gate-plugin-base</artifactId>
-    <!-- The version of GATE you wish to build against -->
-    <version>8.5-SNAPSHOT</version>
-    <!-- This forces the parent to always be resolved from the repo -->
+    <version>8.5</version>
     <relativePath/>
   </parent>
-  <!-- The Maven coordinates of this plugin -->
   <groupId>uk.ac.gate.plugins</groupId>
   <artifactId>jdbclookup</artifactId>
   <version>0.3-SNAPSHOT</version>
-  <!-- Information about this plugin. This will be used when the plugin is 
-		shown in the GATE plugin manager -->
-  <!-- Add a descriptive short name of the plugin -->
   <name>JdbcLookup</name>
-  <!-- Add a description of what the plugin does or can be used for. Do not 
-		include the list of processing or language resources, this will be determined 
-		automatically. About one or two paragraphs. -->
   <description>Provides processing resources for adding and updating annotations based on
     matching information in a JDBC table or a MemDB map.
   </description>
-  <!-- Add the URL of the plugin's user-oriented web page -->
   <url>https://github.com/GateNLP/gateplugin-JdbcLookup</url>
   <licenses>
     <license>
-      <!-- The license used for most GATE plugins and components. Replace with 
-				any other license which is compatible with the licenses of all the software 
-				and libraries this plugin depends on. -->
       <name>GNU Lesser General Public License (LGPL), Version 3</name>
       <url>http://www.gnu.org/licenses/lgpl-3.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <!-- there are plenty of other pieces of useful information you can also 
-		provide here. See the pom.xml reference for full details -->
   <dependencies>
-    <!-- Add the Maven coordinates of all libraries this plugin depends on. 
-			The site https://search.maven.org/ can be used to search for libraries and 
-			copy-paste the XML. Any GATE plugins needed at compile time should use "<scope>provided</scope>" -->
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
