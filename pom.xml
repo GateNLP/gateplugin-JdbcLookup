@@ -4,7 +4,7 @@
   <parent>
     <groupId>uk.ac.gate</groupId>
     <artifactId>gate-plugin-base</artifactId>
-    <version>8.5</version>
+    <version>8.5-SNAPSHOT</version>
     <relativePath/>
   </parent>
   <groupId>uk.ac.gate.plugins</groupId>
