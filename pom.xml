@@ -3,7 +3,7 @@
   <groupId>uk.ac.gate.plugins</groupId>
   <artifactId>jdbclookup</artifactId>
   <version>0.3-SNAPSHOT</version>
-  <name>JdbcLookup</name>
+  <name>JDBC Lookup</name>
   <description>Provides processing resources for adding and updating annotations based on
     matching information in a JDBC table or a MemDB map.
   </description>
