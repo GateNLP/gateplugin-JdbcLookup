@@ -8,6 +8,10 @@
     matching information in a JDBC table or a MemDB map.
   </description>
   <url>https://github.com/GateNLP/gateplugin-JdbcLookup</url>
+  <organization>
+    <name>GATE Team</name>
+    <url>http://gate.ac.uk</url>
+  </organization>
   <developers>
     <developer>
       <name>Johann Petrak</name>
